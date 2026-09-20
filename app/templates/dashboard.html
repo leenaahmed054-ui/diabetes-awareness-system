@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<section class="card hero"><div><p class="eyebrow" data-en="User dashboard" data-ar="لوحة المستخدم">User dashboard</p><h1><span data-en="Hello," data-ar="مرحبًا،">Hello,</span> {{ current_user.full_name }}</h1><p class="lead">{{ current_user.email }}</p><p data-en="Complete a short health assessment to receive a model-based risk score and personalized awareness notes." data-ar="أكمل تقييمًا صحيًا قصيرًا للحصول على درجة خطر من النموذج ورسائل توعوية مخصصة.">Complete a short health assessment to receive a model-based risk score and personalized awareness notes.</p><div class="actions"><a class="button" href="{{ url_for('assessment.new_assessment') }}" data-en="Start a new assessment" data-ar="بدء تقييم جديد">Start a new assessment</a><a class="button secondary" href="{{ url_for('assessment.assessment_history') }}" data-en="Assessment history" data-ar="سجل التقييمات">Assessment history</a></div></div><img class="hero-logo" src="{{ url_for('static', filename='images/project_logo.jpeg') }}" alt="Project logo"></section>
+<form class="no-print" method="post" action="{{ url_for('auth.logout') }}">{{ logout_form.hidden_tag() }}{{ logout_form.submit(class_="logout", **{"data-en":"Log out", "data-ar":"تسجيل الخروج"}) }}</form>
+{% endblock %}

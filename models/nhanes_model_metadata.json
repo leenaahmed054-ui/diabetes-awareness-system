@@ -1,0 +1,35 @@
+{
+    "project": "Big Data Analytics for Diabetes Prediction",
+    "data_source": "NHANES 2017-2018",
+    "model": "Logistic Regression",
+    "target_definition": "Participant reported that a doctor had diagnosed diabetes.",
+    "features": [
+        "GenderCode",
+        "Age",
+        "BMI",
+        "SystolicBP",
+        "DiastolicBP",
+        "Glucose",
+        "PhysicallyActive"
+    ],
+    "data_split": {
+        "training": "70%",
+        "testing": "30%",
+        "random_state": 42,
+        "stratified": true
+    },
+    "risk_display_thresholds": {
+        "low": "score < 0.30",
+        "medium": "0.30 <= score < 0.70",
+        "high": "score >= 0.70"
+    },
+    "test_results": {
+        "accuracy_percent": 85.73,
+        "precision_percent": 54.9,
+        "recall_percent": 86.15,
+        "f1_score_percent": 67.07,
+        "false_negatives": 18
+    },
+    "pregnancy_handling": "Pregnancy is handled by a separate awareness engine and is not used to diagnose gestational diabetes.",
+    "disclaimer": "The system provides early awareness and does not provide medical diagnosis or clinical treatment."
+}

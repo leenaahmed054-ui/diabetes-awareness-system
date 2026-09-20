@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Assessment History{% endblock %}
+{% block content %}
+<section class="card"><p class="eyebrow" data-en="Saved results" data-ar="النتائج المحفوظة">Saved results</p><h1 data-en="Assessment history" data-ar="سجل التقييمات">Assessment history</h1>
+{% if assessments %}<div class="table-wrap"><table><thead><tr><th data-en="Date" data-ar="التاريخ">Date</th><th data-en="Risk score" data-ar="درجة الخطر">Risk score</th><th data-en="Risk level" data-ar="مستوى الخطر">Risk level</th><th data-en="Result" data-ar="النتيجة">Result</th></tr></thead><tbody>{% for assessment in assessments %}<tr><td>{{ assessment.created_at.strftime('%Y-%m-%d %H:%M') if assessment.created_at else '' }}</td><td>{{ "%.2f"|format(assessment.model_risk_score * 100) }}%</td><td>{{ assessment.risk_level }}</td><td><a class="source-link" href="{{ url_for('assessment.assessment_result', assessment_id=assessment.id) }}" data-en="View" data-ar="عرض">View</a></td></tr>{% endfor %}</tbody></table></div>{% else %}<p data-en="No assessments have been saved yet." data-ar="لا توجد تقييمات محفوظة حتى الآن.">No assessments have been saved yet.</p>{% endif %}
+<div class="actions"><a class="button" href="{{ url_for('assessment.new_assessment') }}" data-en="New assessment" data-ar="تقييم جديد">New assessment</a><a class="button secondary" href="{{ url_for('auth.dashboard') }}" data-en="Dashboard" data-ar="لوحة المستخدم">Dashboard</a></div></section>
+{% endblock %}

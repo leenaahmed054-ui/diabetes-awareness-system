@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Log In{% endblock %}
+{% block content %}
+<section class="card auth-card">
+  <p class="eyebrow" data-en="Welcome back" data-ar="مرحبًا بعودتك">Welcome back</p>
+  <h1 data-en="Log in" data-ar="تسجيل الدخول">Log in</h1>
+  <p class="lead" data-en="Access your assessments and saved results." data-ar="ادخل إلى تقييماتك ونتائجك المحفوظة.">Access your assessments and saved results.</p>
+  <form method="post">{{ form.hidden_tag() }}
+    <div class="field"><label for="email" data-en="Email" data-ar="البريد الإلكتروني">Email</label>{{ form.email(autocomplete="email") }}{% for error in form.email.errors %}<span class="error">{{ error }}</span>{% endfor %}</div>
+    <div class="field"><label for="password" data-en="Password" data-ar="كلمة المرور">Password</label>{{ form.password(autocomplete="current-password") }}{% for error in form.password.errors %}<span class="error">{{ error }}</span>{% endfor %}</div>
+    <label class="check-row">{{ form.remember_me() }} <span data-en="Remember me" data-ar="تذكرني">Remember me</span></label>
+    <div class="actions">{{ form.submit(**{"data-en":"Log in", "data-ar":"دخول"}) }}<a class="button secondary" href="{{ url_for('auth.register') }}" data-en="Create a new account" data-ar="إنشاء حساب جديد">Create a new account</a></div>
+  </form>
+</section>
+{% endblock %}

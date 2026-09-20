@@ -1,0 +1,22 @@
+# Secret environment variables
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local environment
+venv/
+.venv/
+
+# Logs
+*.log
+
+# Local database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Operating-system files
+.DS_Store
+Thumbs.db

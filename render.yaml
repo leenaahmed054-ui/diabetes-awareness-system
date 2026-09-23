@@ -23,6 +23,16 @@ services:
         value: "true"
       - key: WHATSAPP_DRY_RUN
         value: "true"
+      - key: WHATSAPP_GRAPH_API_VERSION
+        value: "v23.0"
+      - key: WHATSAPP_ASSESSMENT_TEMPLATE_NAME
+        value: "diabetes_assessment_result"
+      - key: WHATSAPP_RAMADAN_TEMPLATE_NAME
+        value: "ramadan_awareness"
+      - key: WHATSAPP_TEMPLATE_LANGUAGE
+        value: "en"
+      - key: CRON_SECRET
+        generateValue: true
 
 databases:
   - name: diabetes-awareness-db

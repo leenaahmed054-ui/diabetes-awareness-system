@@ -286,7 +286,14 @@ def dashboard():
 
     logout_form = LogoutForm()
 
+    from ..services.ramadan_service import get_active_ramadan_period
+    from ..services.whatsapp_service import is_dry_run_enabled
+
+    active_ramadan_period = get_active_ramadan_period()
+
     return render_template(
         "dashboard.html",
-        logout_form=logout_form
+        logout_form=logout_form,
+        active_ramadan_period=active_ramadan_period,
+        whatsapp_dry_run=is_dry_run_enabled()
     )

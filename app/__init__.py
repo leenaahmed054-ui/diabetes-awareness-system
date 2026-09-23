@@ -130,6 +130,9 @@ def create_app(test_config=None):
     # /assessment/<assessment_id>
     app.register_blueprint(assessment_bp)
 
+    from app.routes.tasks import tasks_bp
+    app.register_blueprint(tasks_bp)
+
 
     # تسجيل أوامر تجهيز رمضان وإرسال WhatsApp.
     from app.commands import register_commands
@@ -139,5 +142,7 @@ def create_app(test_config=None):
     if os.getenv("AUTO_CREATE_TABLES", "true").lower() == "true":
         with app.app_context():
             db.create_all()
+            from app.services.ramadan_service import ensure_configured_ramadan_period
+            ensure_configured_ramadan_period()
 
     return app

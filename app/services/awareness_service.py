@@ -23,6 +23,16 @@ CDC_GESTATIONAL_DIABETES_SOURCE = (
     "about-gestational-diabetes.html"
 )
 
+ACOG_PREGNANCY_BP_SOURCE = (
+    "https://www.acog.org/womens-health/faqs/"
+    "preeclampsia-and-high-blood-pressure-during-pregnancy"
+)
+
+WHO_PREGNANCY_ACTIVITY_SOURCE = (
+    "https://www.who.int/news-room/fact-sheets/"
+    "detail/physical-activity"
+)
+
 
 def classify_bmi(bmi):
     """
@@ -214,7 +224,9 @@ def create_glucose_awareness(glucose):
 def create_pregnancy_awareness(
     gender,
     pregnancy_status,
-    parity=None
+    parity=None,
+    systolic_bp=None,
+    diastolic_bp=None
 ):
     """
     إنشاء رسالة خاصة بالجنس والحمل.
@@ -249,19 +261,58 @@ def create_pregnancy_awareness(
 
     # رسالة ذات أولوية للمرأة الحامل.
     if normalized_status == "pregnant":
-        return {
-            "category": "pregnancy",
-            "title": "Pregnancy and glucose awareness",
-            "level": "important",
-            "message": (
-                "Pregnancy requires pregnancy-specific medical "
-                "assessment. This website's general diabetes model "
-                "cannot diagnose gestational diabetes. Please "
-                "follow the glucose screening schedule recommended "
-                "by your obstetric or healthcare professional."
-            ),
-            "source": CDC_GESTATIONAL_DIABETES_SOURCE
-        }
+        return [
+            {
+                "category": "pregnancy_screening",
+                "title": "Gestational diabetes screening",
+                "level": "important",
+                "message": (
+                    "The risk score above comes from a general adult model and "
+                    "does not diagnose gestational diabetes. Screening is commonly "
+                    "performed between weeks 24 and 28, or earlier when a maternity "
+                    "clinician identifies higher risk. Keep all antenatal appointments "
+                    "and follow the testing schedule given by your care team."
+                ),
+                "source": CDC_GESTATIONAL_DIABETES_SOURCE
+            },
+            {
+                "category": "pregnancy_pressure",
+                "title": "Blood pressure in pregnancy",
+                "level": "urgent" if float(systolic_bp or 0) >= 160 or float(diastolic_bp or 0) >= 110 else "important",
+                "message": (
+                    "Blood pressure requires pregnancy-specific interpretation. "
+                    "A repeated reading of 140/90 mmHg or higher should be discussed "
+                    "promptly with your maternity team. Seek urgent care for a severe "
+                    "reading or symptoms such as a persistent headache, vision changes, "
+                    "upper-abdominal pain, breathing difficulty, or sudden swelling."
+                ),
+                "source": ACOG_PREGNANCY_BP_SOURCE
+            },
+            {
+                "category": "pregnancy_lifestyle",
+                "title": "Pregnancy lifestyle awareness",
+                "level": "information",
+                "message": (
+                    "Do not start a weight-loss plan during pregnancy. Follow your "
+                    "maternity team's guidance for healthy weight gain, balanced meals, "
+                    "hydration, and activity. When there is no medical contraindication, "
+                    "regular moderate activity can support maternal health."
+                ),
+                "source": WHO_PREGNANCY_ACTIVITY_SOURCE
+            },
+            {
+                "category": "pregnancy_ramadan",
+                "title": "Pregnancy and Ramadan",
+                "level": "important",
+                "message": (
+                    "Pregnancy and fasting require an individual medical assessment. "
+                    "Discuss fasting with your obstetric or qualified healthcare "
+                    "professional before Ramadan, especially if glucose or blood-pressure "
+                    "readings are unusual."
+                ),
+                "source": CDC_GESTATIONAL_DIABETES_SOURCE
+            }
+        ]
 
     # رسالة للأنثى غير الحامل.
     if normalized_status == "not_pregnant":
@@ -335,12 +386,17 @@ def create_complete_awareness(
     if glucose is not None:
         awareness_messages.append(create_glucose_awareness(glucose))
 
-    awareness_messages.append(
-        create_pregnancy_awareness(
-            gender=gender,
-            pregnancy_status=pregnancy_status,
-            parity=parity
-        )
+    pregnancy_awareness = create_pregnancy_awareness(
+        gender=gender,
+        pregnancy_status=pregnancy_status,
+        parity=parity,
+        systolic_bp=systolic_bp,
+        diastolic_bp=diastolic_bp
     )
+
+    if isinstance(pregnancy_awareness, list):
+        awareness_messages.extend(pregnancy_awareness)
+    else:
+        awareness_messages.append(pregnancy_awareness)
 
     return awareness_messages

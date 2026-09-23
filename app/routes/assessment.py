@@ -5,7 +5,8 @@ from flask import (
     render_template,
     redirect,
     url_for,
-    flash
+    flash,
+    current_app
 )
 
 # حماية الصفحات بحيث لا يدخلها إلا المستخدم المسجل.
@@ -27,6 +28,10 @@ from app.services.prediction_service import DiabetesPredictionService
 from app.services.awareness_service import (
     create_complete_awareness
 )
+from app.services.notification_dispatcher import (
+    dispatch_pending_notifications
+)
+from app.services.whatsapp_service import is_dry_run_enabled
 
 
 # إنشاء Blueprint خاص بالتقييمات.
@@ -138,6 +143,8 @@ def new_assessment():
 
             # إنشاء إشعار فقط إذا كانت جميع شروط
             # الموافقة والخصوصية متوفرة.
+            assessment_notification = None
+
             if (
                 current_user.is_active_account
                 and current_user.whatsapp_consent
@@ -167,6 +174,19 @@ def new_assessment():
             # حفظ الملف الصحي والتقييم والإشعار
             # داخل معاملة MySQL واحدة.
             db.session.commit()
+
+            # محاولة إرسال نتيجة التقييم فورًا. في وضع DRY_RUN
+            # تُختبر الرسالة دون اتصال فعلي بـMeta.
+            if assessment_notification is not None:
+                try:
+                    dispatch_pending_notifications(
+                        limit=1,
+                        notification_ids=[assessment_notification.id]
+                    )
+                except Exception:
+                    current_app.logger.exception(
+                        "Assessment WhatsApp dispatch failed."
+                    )
 
             flash(
                 "Your assessment was saved successfully.",
@@ -244,11 +264,23 @@ def assessment_result(assessment_id):
         glucose=assessment.glucose
     )
 
+    assessment_notification = (
+        Notification.query
+        .filter_by(
+            assessment_id=assessment.id,
+            notification_type="assessment_result"
+        )
+        .order_by(Notification.created_at.desc())
+        .first()
+    )
+
     # تمرير النتيجة والرسائل إلى صفحة HTML.
     return render_template(
         "assessment_result.html",
         assessment=assessment,
-        awareness_messages=awareness_messages
+        awareness_messages=awareness_messages,
+        assessment_notification=assessment_notification,
+        whatsapp_dry_run=is_dry_run_enabled()
     )
 
 

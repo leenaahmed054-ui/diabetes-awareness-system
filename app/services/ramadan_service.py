@@ -11,6 +11,7 @@ Ramadan Seasonal Awareness Service.
 
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
+import os
 
 from app.extensions import db
 from app.models import (
@@ -22,6 +23,36 @@ from app.models import (
 
 # استخدام توقيت السعودية بدل الاعتماد على توقيت الخادم.
 SAUDI_TIMEZONE = ZoneInfo("Asia/Riyadh")
+
+
+def ensure_configured_ramadan_period():
+    """Create/update the Ramadan period supplied through environment variables."""
+
+    start_value = os.getenv("RAMADAN_START_DATE")
+    end_value = os.getenv("RAMADAN_END_DATE")
+
+    if not start_value or not end_value:
+        return None
+
+    start_date = normalize_target_date(start_value)
+    end_date = normalize_target_date(end_value)
+
+    if end_date < start_date:
+        raise ValueError("RAMADAN_END_DATE must be on or after RAMADAN_START_DATE.")
+
+    period_name = os.getenv("RAMADAN_PERIOD_NAME", f"Ramadan {start_date.year}")
+    period = SeasonalPeriod.query.filter_by(period_name=period_name).first()
+
+    if period is None:
+        period = SeasonalPeriod(period_name=period_name)
+        db.session.add(period)
+
+    period.start_date = start_date
+    period.end_date = end_date
+    period.is_active = True
+    db.session.commit()
+
+    return period
 
 
 def normalize_target_date(target_date=None):

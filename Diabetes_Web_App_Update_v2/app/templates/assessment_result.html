@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Assessment Result{% endblock %}
+{% block content %}
+<section class="card">
+  <p class="eyebrow" data-en="Assessment result" data-ar="نتيجة التقييم">Assessment result</p>
+  <div class="hero"><div><h1 data-en="Your model risk score" data-ar="درجة الخطر حسب النموذج">Your model risk score</h1><div class="metric"><strong>{{ "%.2f"|format(assessment.model_risk_score * 100) }}%</strong><span data-en="Risk level:" data-ar="مستوى الخطر:">Risk level:</span> <span class="risk-pill">{{ assessment.risk_level }}</span></div><p class="lead"><span data-en="Model classification:" data-ar="تصنيف النموذج:">Model classification:</span> <strong>{% if assessment.predicted_class == 1 %}<span data-en="Increased diabetes risk" data-ar="خطر سكري مرتفع">Increased diabetes risk</span>{% else %}<span data-en="Lower diabetes risk" data-ar="خطر سكري منخفض">Lower diabetes risk</span>{% endif %}</strong></p></div><img class="hero-logo" src="{{ url_for('static', filename='images/project_logo.jpeg') }}" alt="Project logo"></div>
+</section>
+
+{% if assessment.gender_code == 1 and assessment.pregnancy_status == 'pregnant' %}
+<section class="card">
+  <p class="eyebrow" data-en="Pregnancy-specific interpretation" data-ar="تفسير خاص بالحمل">Pregnancy-specific interpretation</p>
+  <h2 data-en="This result is not a gestational-diabetes diagnosis" data-ar="هذه النتيجة ليست تشخيصًا لسكري الحمل">This result is not a gestational-diabetes diagnosis</h2>
+  <p data-en="The general model score remains visible for awareness, but pregnancy requires separate screening and maternity follow-up. Review the pregnancy cards below for screening, blood-pressure, lifestyle and Ramadan guidance." data-ar="تبقى درجة النموذج العام ظاهرة للتوعية، لكن الحمل يحتاج فحصًا منفصلًا ومتابعة حمل. راجعي البطاقات أدناه الخاصة بالفحص وضغط الدم ونمط الحياة ورمضان.">The general model score remains visible for awareness, but pregnancy requires separate screening and maternity follow-up.</p>
+</section>
+{% endif %}
+
+<section class="card"><h2 data-en="Submitted health information" data-ar="البيانات الصحية المدخلة">Submitted health information</h2><div class="data-list">
+  <div class="data-item"><span data-en="Age" data-ar="العمر">Age</span><strong>{{ assessment.age }}</strong></div>
+  <div class="data-item"><span data-en="BMI" data-ar="مؤشر كتلة الجسم">BMI</span><strong>{{ assessment.bmi }}</strong></div>
+  <div class="data-item"><span data-en="Blood pressure" data-ar="ضغط الدم">Blood pressure</span><strong>{{ assessment.systolic_bp }}/{{ assessment.diastolic_bp }} mmHg</strong></div>
+  <div class="data-item"><span data-en="Glucose" data-ar="الجلوكوز">Glucose</span><strong>{{ assessment.glucose }} mg/dL</strong></div>
+  <div class="data-item"><span data-en="Physical activity" data-ar="النشاط البدني">Physical activity</span><strong>{% if assessment.physically_active == 1 %}<span data-en="Yes" data-ar="نعم">Yes</span>{% else %}<span data-en="No" data-ar="لا">No</span>{% endif %}</strong></div>
+  {% if assessment.gender_code == 1 %}<div class="data-item"><span data-en="Pregnancy status" data-ar="حالة الحمل">Pregnancy status</span><strong>{{ assessment.pregnancy_status }}</strong></div>{% endif %}
+</div></section>
+
+<section class="card"><h2 data-en="Personalized health awareness" data-ar="التحليل والتوعية الشخصية">Personalized health awareness</h2><p class="lead" data-en="Each item explains one submitted value. These notes do not alter the trained model score." data-ar="كل بطاقة تشرح قيمة مدخلة، ولا تغيّر هذه الملاحظات درجة النموذج المدرّب.">Each item explains one submitted value. These notes do not alter the trained model score.</p><div class="analysis-grid">
+{% for awareness in awareness_messages %}{% if not (awareness.category == 'pregnancy' and assessment.gender_code == 0) %}
+<article class="analysis-card {{ awareness.level }}" data-awareness="{{ awareness.category }}" data-bmi-category="{{ awareness.bmi_category|default('') }}" data-pregnancy-status="{{ assessment.pregnancy_status|default('') }}"><h3>
+{% if awareness.category == 'bmi' %}<span data-en="BMI analysis" data-ar="تحليل مؤشر كتلة الجسم">BMI analysis</span>
+{% elif awareness.category == 'physical_activity' %}<span data-en="Physical activity" data-ar="النشاط البدني">Physical activity</span>
+{% elif awareness.category == 'blood_pressure' %}<span data-en="Blood pressure" data-ar="ضغط الدم">Blood pressure</span>
+{% elif awareness.category == 'glucose' %}<span data-en="Glucose" data-ar="الجلوكوز">Glucose</span>
+{% elif awareness.category == 'pregnancy_screening' %}<span data-en="Gestational diabetes screening" data-ar="فحص سكري الحمل">Gestational diabetes screening</span>
+{% elif awareness.category == 'pregnancy_pressure' %}<span data-en="Blood pressure in pregnancy" data-ar="ضغط الدم أثناء الحمل">Blood pressure in pregnancy</span>
+{% elif awareness.category == 'pregnancy_lifestyle' %}<span data-en="Pregnancy lifestyle" data-ar="نمط الحياة أثناء الحمل">Pregnancy lifestyle</span>
+{% elif awareness.category == 'pregnancy_ramadan' %}<span data-en="Pregnancy and Ramadan" data-ar="الحمل ورمضان">Pregnancy and Ramadan</span>
+{% else %}<span data-en="Pregnancy awareness" data-ar="التوعية بالحمل">Pregnancy awareness</span>{% endif %}</h3>
+{% if awareness.bmi_category is defined %}<p><strong>{{ awareness.bmi_category }}</strong></p>{% endif %}
+{% if awareness.value_category is defined %}<p><strong>{{ awareness.value_category }}</strong></p>{% endif %}
+<p class="awareness-message">{{ awareness.message }}</p>{% if awareness.source %}<a class="source-link no-print" href="{{ awareness.source }}" target="_blank" rel="noopener noreferrer" data-en="Official health source" data-ar="المصدر الصحي الرسمي">Official health source</a>{% endif %}</article>
+{% endif %}{% endfor %}
+</div></section>
+
+<section class="card no-print">
+  <h2 data-en="WhatsApp notification" data-ar="إشعار واتساب">WhatsApp notification</h2>
+  {% if not current_user.whatsapp_consent %}
+  <div class="notification-status"><span class="status-dot waiting"></span><div><strong data-en="Not enabled" data-ar="غير مفعّل">Not enabled</strong><p data-en="You did not consent to WhatsApp awareness messages when creating the account." data-ar="لم تتم الموافقة على رسائل التوعية عبر واتساب عند إنشاء الحساب.">You did not consent to WhatsApp awareness messages.</p></div></div>
+  {% elif not assessment_notification %}
+  <div class="notification-status"><span class="status-dot waiting"></span><div><strong data-en="Not prepared" data-ar="لم يتم التجهيز">Not prepared</strong><p data-en="No WhatsApp result notification was created. Confirm that the account has a valid WhatsApp number." data-ar="لم يتم إنشاء إشعار النتيجة. تأكد من وجود رقم واتساب صحيح في الحساب.">No WhatsApp result notification was created.</p></div></div>
+  {% elif whatsapp_dry_run %}
+  <div class="notification-status"><span class="status-dot waiting"></span><div><strong data-en="Test mode (not sent)" data-ar="وضع تجريبي (لم تُرسل)">Test mode (not sent)</strong><p data-en="The notification was prepared and validated, but WHATSAPP_DRY_RUN is enabled. Meta credentials and approved templates are required for real delivery." data-ar="تم تجهيز الإشعار والتحقق منه، لكن وضع WHATSAPP_DRY_RUN مفعّل. الإرسال الحقيقي يحتاج بيانات Meta وقوالب معتمدة.">The notification was prepared and validated, but test mode is enabled.</p></div></div>
+  {% elif assessment_notification.delivery_status in ['submitted', 'sent'] %}
+  <div class="notification-status"><span class="status-dot"></span><div><strong data-en="Submitted to WhatsApp" data-ar="تم الإرسال إلى واتساب">Submitted to WhatsApp</strong><p data-en="Meta accepted the message request." data-ar="قبلت Meta طلب إرسال الرسالة.">Meta accepted the message request.</p></div></div>
+  {% else %}
+  <div class="notification-status"><span class="status-dot waiting"></span><div><strong>{{ assessment_notification.delivery_status }}</strong><p data-en="The notification is waiting or could not be delivered. An administrator can review the Render logs." data-ar="الإشعار قيد الانتظار أو تعذر إرساله، ويمكن للمسؤول مراجعة سجلات Render.">The notification is waiting or could not be delivered.</p></div></div>
+  {% endif %}
+</section>
+
+<section class="card"><h2 data-en="Important notice" data-ar="تنبيه مهم">Important notice</h2><p data-en="This result is for awareness and early risk assessment only. It is not a diagnosis and does not replace consultation with a qualified healthcare professional." data-ar="هذه النتيجة للتوعية والتقييم المبكر للمخاطر فقط، وليست تشخيصًا ولا تغني عن استشارة مختص صحي مؤهل.">This result is for awareness and early risk assessment only. It is not a diagnosis and does not replace consultation with a qualified healthcare professional.</p><div class="actions no-print"><button type="button" onclick="window.print()" data-en="Download / save report as PDF" data-ar="تحميل / حفظ التقرير PDF">Download / save report as PDF</button><a class="button secondary" href="{{ url_for('assessment.new_assessment') }}" data-en="New assessment" data-ar="تقييم جديد">New assessment</a><a class="button secondary" href="{{ url_for('assessment.assessment_history') }}" data-en="Assessment history" data-ar="سجل التقييمات">Assessment history</a></div></section>
+{% endblock %}

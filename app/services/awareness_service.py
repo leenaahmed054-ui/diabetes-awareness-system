@@ -226,7 +226,8 @@ def create_pregnancy_awareness(
     pregnancy_status,
     parity=None,
     systolic_bp=None,
-    diastolic_bp=None
+    diastolic_bp=None,
+    ramadan_active=False
 ):
     """
     إنشاء رسالة خاصة بالجنس والحمل.
@@ -261,7 +262,7 @@ def create_pregnancy_awareness(
 
     # رسالة ذات أولوية للمرأة الحامل.
     if normalized_status == "pregnant":
-        return [
+        pregnancy_messages = [
             {
                 "category": "pregnancy_screening",
                 "title": "Gestational diabetes screening",
@@ -299,20 +300,25 @@ def create_pregnancy_awareness(
                     "regular moderate activity can support maternal health."
                 ),
                 "source": WHO_PREGNANCY_ACTIVITY_SOURCE
-            },
-            {
+            }
+        ]
+
+        # لا تظهر نصيحة رمضان خارج الفترة الموسمية المسجلة.
+        if ramadan_active:
+            pregnancy_messages.append({
                 "category": "pregnancy_ramadan",
                 "title": "Pregnancy and Ramadan",
                 "level": "important",
                 "message": (
                     "Pregnancy and fasting require an individual medical assessment. "
                     "Discuss fasting with your obstetric or qualified healthcare "
-                    "professional before Ramadan, especially if glucose or blood-pressure "
-                    "readings are unusual."
+                    "professional, especially if glucose or blood-pressure readings "
+                    "are unusual."
                 ),
                 "source": CDC_GESTATIONAL_DIABETES_SOURCE
-            }
-        ]
+            })
+
+        return pregnancy_messages
 
     # رسالة للأنثى غير الحامل.
     if normalized_status == "not_pregnant":
@@ -364,7 +370,8 @@ def create_complete_awareness(
     parity=None,
     systolic_bp=None,
     diastolic_bp=None,
-    glucose=None
+    glucose=None,
+    ramadan_active=False
 ):
     """
     تجميع جميع رسائل التوعية في قائمة واحدة.
@@ -391,7 +398,8 @@ def create_complete_awareness(
         pregnancy_status=pregnancy_status,
         parity=parity,
         systolic_bp=systolic_bp,
-        diastolic_bp=diastolic_bp
+        diastolic_bp=diastolic_bp,
+        ramadan_active=ramadan_active
     )
 
     if isinstance(pregnancy_awareness, list):

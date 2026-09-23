@@ -32,6 +32,7 @@ from app.services.notification_dispatcher import (
     dispatch_pending_notifications
 )
 from app.services.whatsapp_service import is_dry_run_enabled
+from app.services.ramadan_service import get_active_ramadan_period
 
 
 # إنشاء Blueprint خاص بالتقييمات.
@@ -261,7 +262,8 @@ def assessment_result(assessment_id):
         parity=assessment.parity,
         systolic_bp=assessment.systolic_bp,
         diastolic_bp=assessment.diastolic_bp,
-        glucose=assessment.glucose
+        glucose=assessment.glucose,
+        ramadan_active=(get_active_ramadan_period() is not None)
     )
 
     assessment_notification = (

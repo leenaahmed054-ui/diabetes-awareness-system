@@ -29,7 +29,15 @@ from app.services.whatsapp_service import (
     WhatsAppConfigurationError,
     WhatsAppDeliveryError
 )
-
+from app.services.daily_tip_service import (
+    DAILY_TIP_PREFIX,
+    daily_tip_type,
+    daily_tips_enabled,
+)
+from app.services.ramadan_service import (
+    get_active_ramadan_period,
+    normalize_target_date,
+)
 
 def get_template_information(notification):
     """
@@ -40,7 +48,16 @@ def get_template_information(notification):
     """
 
     notification_type = notification.notification_type
-
+    if notification_type.startswith(DAILY_TIP_PREFIX):
+        return {
+            "template_name": os.getenv(
+                "WHATSAPP_DAILY_TIP_TEMPLATE_NAME", "diabetes_daily_tip"
+            ),
+            "language_code": os.getenv(
+                "WHATSAPP_DAILY_TIP_TEMPLATE_LANGUAGE", "ar"
+            ),
+            "body_parameters": [notification.message_text],
+        }
     # إشعارات رمضان.
     if notification_type.startswith(
         "ramadan_awareness_"
@@ -151,6 +168,7 @@ def dispatch_pending_notifications(limit=100, notification_ids=None):
         })
 
         # إذا كانت القائمة فارغة فلا نعالج أي إشعار.
+        
         if not safe_notification_ids:
             return {
                 "mode": (
@@ -197,6 +215,24 @@ def dispatch_pending_notifications(limit=100, notification_ids=None):
     for notification in pending_notifications:
 
         try:
+                        if notification.notification_type.startswith(DAILY_TIP_PREFIX):
+                day = normalize_target_date(None)
+                if notification.notification_type != daily_tip_type(day):
+                    notification.delivery_status = "expired"
+                    db.session.commit()
+                    reason = "expired"
+                elif not daily_tips_enabled() or get_active_ramadan_period(day) is not None:
+                    reason = "daily_tip_inactive"
+                else:
+                    reason = None
+
+                if reason:
+                    dispatch_report["skipped"] += 1
+                    dispatch_report["results"].append({
+                        "notification_id": notification.id,
+                        "status": reason,
+                    })
+                    continue
             # قراءة صاحب الإشعار.
             user = db.session.get(
                 User,

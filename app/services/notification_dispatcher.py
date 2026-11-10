@@ -215,7 +215,8 @@ def dispatch_pending_notifications(limit=100, notification_ids=None):
     for notification in pending_notifications:
 
         try:
-                                   if notification.notification_type.startswith(DAILY_TIP_PREFIX):
+                                 
+                                               if notification.notification_type.startswith(DAILY_TIP_PREFIX):
                 day = normalize_target_date(None)
                 if notification.notification_type != daily_tip_type(day):
                     notification.delivery_status = "expired"

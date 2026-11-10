@@ -1,0 +1,143 @@
+--- /dev/null
++++ b/app/services/daily_tip_service.py
+@@ -0,0 +1,55 @@
++"""Queue a general awareness reminder outside active Ramadan periods."""
++
++import os
++
++from app.extensions import db
++from app.models import Notification, User
++from app.services.ramadan_service import get_active_ramadan_period, normalize_target_date
++
++DAILY_TIP_PREFIX = "daily_tip_"
++TIPS = (
++    "تذكير اليوم: دوّن سؤالًا تود طرحه في موعدك الصحي القادم.",
++    "تذكير اليوم: راجع دليل استخدام جهاز القياس قبل استعماله.",
++    "تذكير اليوم: راجع سجل تقييماتك في المنصة وجهّز أي استفسار للموعد القادم.",
++)
++
++
++def daily_tips_enabled():
++    return os.getenv("WHATSAPP_DAILY_TIPS_ENABLED", "false").lower() == "true"
++
++
++def daily_tip_type(day):
++    return DAILY_TIP_PREFIX + day.isoformat()
++
++
++def prepare_daily_tips():
++    day = normalize_target_date(None)
++    report = dict(status="disabled", target_date=day.isoformat(), prepared=0, duplicate=0)
++    if not daily_tips_enabled():
++        return report
++    if get_active_ramadan_period(day) is not None:
++        report["status"] = "ramadan_active"
++        return report
++
++    kind = daily_tip_type(day)
++    users = db.session.scalars(
++        db.select(User)
++        .where(User.is_active_account.is_(True), User.whatsapp_consent.is_(True),
++               User.phone_number_encrypted.isnot(None))
++        .order_by(User.id)
++        .with_for_update()
++    ).all()
++    existing = set(db.session.scalars(
++        db.select(Notification.user_id).where(Notification.notification_type == kind)
++    ))
++    for user in users:
++        if user.id in existing:
++            report["duplicate"] += 1
++            continue
++        db.session.add(Notification(user_id=user.id, notification_type=kind,
++                                    message_text=TIPS[day.toordinal() % len(TIPS)],
++                                    delivery_status="pending"))
++        report["prepared"] += 1
++    db.session.commit()
++    report["status"] = "completed"
++    return report
+--- a/app/services/notification_dispatcher.py
++++ b/app/services/notification_dispatcher.py
+@@ -31,6 +31,10 @@
+ )
+ 
+ 
++from app.services.daily_tip_service import DAILY_TIP_PREFIX, daily_tip_type, daily_tips_enabled
++from app.services.ramadan_service import get_active_ramadan_period, normalize_target_date
++
++
+ def get_template_information(notification):
+     """
+     تحديد اسم القالب والمتغيرات بناءً على نوع الإشعار.
+@@ -40,6 +44,13 @@
+     """
+ 
+     notification_type = notification.notification_type
++
++    if notification_type.startswith(DAILY_TIP_PREFIX):
++        return {
++            "template_name": os.getenv("WHATSAPP_DAILY_TIP_TEMPLATE_NAME", "diabetes_daily_tip"),
++            "language_code": os.getenv("WHATSAPP_DAILY_TIP_TEMPLATE_LANGUAGE", "ar"),
++            "body_parameters": [notification.message_text],
++        }
+ 
+     # إشعارات رمضان.
+     if notification_type.startswith(
+@@ -197,6 +208,23 @@
+     for notification in pending_notifications:
+ 
+         try:
++            if notification.notification_type.startswith(DAILY_TIP_PREFIX):
++                day = normalize_target_date(None)
++                if notification.notification_type != daily_tip_type(day):
++                    notification.delivery_status = "expired"
++                    db.session.commit()
++                    reason = "expired"
++                elif not daily_tips_enabled() or get_active_ramadan_period(day) is not None:
++                    reason = "daily_tip_inactive"
++                else:
++                    reason = None
++                if reason:
++                    dispatch_report["skipped"] += 1
++                    dispatch_report["results"].append(
++                        {"notification_id": notification.id, "status": reason}
++                    )
++                    continue
++
+             # قراءة صاحب الإشعار.
+             user = db.session.get(
+                 User,
+--- a/app/routes/tasks.py
++++ b/app/routes/tasks.py
+@@ -6,6 +6,7 @@
+ from flask import Blueprint, jsonify, request
+ 
+ from app.extensions import csrf
++from app.services.daily_tip_service import prepare_daily_tips
+ from app.services.notification_scheduler import prepare_daily_ramadan_notifications
+ from app.services.notification_dispatcher import dispatch_pending_notifications
+ 
+@@ -25,10 +26,12 @@
+         return jsonify({"status": "unauthorized"}), 401
+ 
+     preparation = prepare_daily_ramadan_notifications(batch_size=500)
++    daily_tips = prepare_daily_tips()
+     dispatch = dispatch_pending_notifications(limit=500)
+ 
+     return jsonify({
+         "status": "completed",
+         "preparation": preparation,
++        "daily_tips": daily_tips,
+         "dispatch": dispatch
+     })
+--- a/.env.example
++++ b/.env.example
+@@ -21,3 +21,8 @@
+ WHATSAPP_ACCESS_TOKEN=replace_later
+ WHATSAPP_PHONE_NUMBER_ID=replace_later
+ WHATSAPP_API_VERSION=replace_later
++
++# Optional general WhatsApp reminders outside Ramadan.
++WHATSAPP_DAILY_TIPS_ENABLED=false
++WHATSAPP_DAILY_TIP_TEMPLATE_NAME=diabetes_daily_tip
++WHATSAPP_DAILY_TIP_TEMPLATE_LANGUAGE=ar
